@@ -39,7 +39,11 @@ const prompt = ai.definePrompt({
   
   Within that conclusion, identify any ideas, suggestions, or unanswered questions the author proposes for **future research**.
   
-  Then, generate a report that **expands on those specific ideas**. This report should explore the potential of those research paths, suggest possible methodologies, and outline the next steps a researcher could take.
+  Then, generate a report that **expands on those specific ideas**. 
+  
+  The report must be **concise and crisp**, focusing only on the most promising research paths. 
+  
+  It must also be **neatly formatted**. Use headings for each major idea and bullet points to outline potential methodologies and next steps.
 
   PDF Document: {{media url=pdfDataUri}}
   `,
