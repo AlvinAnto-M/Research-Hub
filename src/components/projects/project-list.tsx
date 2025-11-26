@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
 import { type Project } from "@/lib/placeholder-data";
 import { ProjectContext } from '@/context/ProjectContext';
+import Link from 'next/link';
 
 const statusVariantMap: Record<Project['status'], BadgeProps['variant']> = {
     "Completed": "default",
@@ -88,8 +89,12 @@ export function ProjectList() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Edit Project</DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/projects/${project.id}`}>View Details</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                           <Link href={`/projects/${project.id}/edit`}>Edit Project</Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={() => removeProject(project.id)}

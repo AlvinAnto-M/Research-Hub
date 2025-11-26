@@ -7,12 +7,16 @@ interface ProjectContextType {
   projects: Project[];
   addProject: (project: Project) => void;
   removeProject: (projectId: string) => void;
+  updateProject: (updatedProject: Project) => void;
+  getProjectById: (projectId: string) => Project | undefined;
 }
 
 export const ProjectContext = createContext<ProjectContextType>({
   projects: [],
   addProject: () => {},
   removeProject: () => {},
+  updateProject: () => {},
+  getProjectById: () => undefined,
 });
 
 export const ProjectProvider = ({ children }: { children: ReactNode }) => {
@@ -49,8 +53,18 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     setProjects(prevProjects => prevProjects.filter(p => p.id !== projectId));
   };
   
+  const updateProject = (updatedProject: Project) => {
+    setProjects(prevProjects => 
+      prevProjects.map(p => p.id === updatedProject.id ? updatedProject : p)
+    );
+  };
+
+  const getProjectById = (projectId: string): Project | undefined => {
+    return projects.find(p => p.id === projectId);
+  };
+
   return (
-    <ProjectContext.Provider value={{ projects, addProject, removeProject }}>
+    <ProjectContext.Provider value={{ projects, addProject, removeProject, updateProject, getProjectById }}>
       {children}
     </ProjectContext.Provider>
   );
