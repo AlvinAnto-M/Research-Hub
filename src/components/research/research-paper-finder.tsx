@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -21,6 +22,7 @@ import { Loader2, Search, ExternalLink, FileText } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import type { Paper } from '@/services/semantic-scholar';
 import { Separator } from '../ui/separator';
+import ReactMarkdown from 'react-markdown';
 
 const formSchema = z.object({
   query: z.string().min(3, "Please enter at least 3 characters."),
@@ -128,10 +130,12 @@ export function ResearchPaperFinder() {
         case 'summary':
             if (!selectedPaper) return null;
             return (
-                <div className="rounded-md border p-4 bg-muted/50 h-full max-h-[70vh] overflow-y-auto">
-                    <h3 className="font-bold text-lg mb-2 font-headline">Executive Summary</h3>
-                    <pre className="whitespace-pre-wrap text-sm font-body mb-4">{summary}</pre>
-                    <Separator className="my-4" />
+                <div className="rounded-md border p-6 bg-muted/50 h-full max-h-[70vh] overflow-y-auto">
+                    <h3 className="font-bold text-lg mb-4 font-headline">Executive Summary</h3>
+                    <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-headline prose-headings:font-bold mb-6">
+                      <ReactMarkdown>{summary}</ReactMarkdown>
+                    </div>
+                    <Separator className="my-6" />
                     <h4 className="font-semibold mb-2">Evidence</h4>
                     <a href={selectedPaper.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline flex items-center">
                         View Original Paper <ExternalLink className="h-4 w-4 ml-2"/>

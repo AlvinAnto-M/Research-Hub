@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -18,6 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { generateReportFromPdfAction } from '@/actions/generate-report-from-pdf';
 import { Loader2, Wand2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import ReactMarkdown from 'react-markdown';
 
 const formSchema = z.object({
   pdfFile: z
@@ -129,8 +131,10 @@ export function ReportGeneratorForm() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : report ? (
-            <div className="rounded-md border p-4 bg-muted/50 h-full max-h-[65vh] overflow-auto">
-              <pre className="whitespace-pre-wrap text-sm font-body">{report}</pre>
+            <div className="rounded-md border p-6 bg-muted/50 h-full max-h-[65vh] overflow-auto">
+              <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-headline prose-headings:font-bold">
+                <ReactMarkdown>{report}</ReactMarkdown>
+              </div>
             </div>
           ) : (
             <div className="flex items-center justify-center h-full border-2 border-dashed rounded-lg">
