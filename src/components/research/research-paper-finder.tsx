@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -18,11 +17,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { searchPapersAction } from '@/actions/search-papers';
 import { summarizePaperAction } from '@/actions/summarize-paper';
-import { Loader2, Search, ExternalLink, FileText } from 'lucide-react';
+import { Loader2, Search, ExternalLink, FileText, Bookmark } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import type { Paper } from '@/services/semantic-scholar';
 import { Separator } from '../ui/separator';
 import ReactMarkdown from 'react-markdown';
+import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useFirebase } from '@/firebase';
 
 const formSchema = z.object({
   query: z.string().min(3, "Please enter at least 3 characters."),
@@ -33,10 +34,12 @@ type FormValues = z.infer<typeof formSchema>;
 type SearchState = 'idle' | 'searching' | 'summarizing' | 'results' | 'summary' | 'error';
 
 export function ResearchPaperFinder() {
+  const { firestore } = useFirebase();
   const [searchState, setSearchState] = useState<SearchState>('idle');
   const [papers, setPapers] = useState<Paper[]>([]);
   const [summary, setSummary] = useState('');
   const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
+  const [isBookmarking, setIsBookmarking] = useState<string | null>(null);
   const { toast } = useToast();
 
   const form = useForm<FormValues>({
@@ -87,7 +90,38 @@ export function ResearchPaperFinder() {
             title: "Error Generating Summary",
             description: result.error || "An unknown error occurred.",
         });
-        setSearchState('results'); // Go back to results list
+        setSearchState('results');
+    }
+  }
+
+  async function handleBookmark(paper: Paper) {
+    if (!firestore) return;
+    setIsBookmarking(paper.paperId);
+
+    try {
+      const bookmarksRef = collection(firestore, 'users', 'current-user', 'bookmarks');
+      await addDoc(bookmarksRef, {
+        paperId: paper.paperId,
+        title: paper.title,
+        url: paper.url,
+        authors: paper.authors.map(a => a.name),
+        year: paper.year || null,
+        addedAt: serverTimestamp(),
+      });
+
+      toast({
+        title: "Paper Bookmarked",
+        description: `"${paper.title}" has been added to your bookmarks.`,
+      });
+    } catch (error) {
+      console.error("Error bookmarking paper:", error);
+      toast({
+        variant: "destructive",
+        title: "Bookmark Failed",
+        description: "Could not save bookmark. Please try again.",
+      });
+    } finally {
+      setIsBookmarking(null);
     }
   }
   
@@ -107,7 +141,7 @@ export function ResearchPaperFinder() {
         case 'results':
             return (
                 <div className="space-y-3 h-full max-h-[70vh] overflow-y-auto">
-                    <h3 className="font-bold text-lg font-headline">Select a Paper to Summarize</h3>
+                    <h3 className="font-bold text-lg font-headline">Select a Paper</h3>
                     {papers.map((paper) => (
                         <Card key={paper.paperId} className="hover:bg-muted/50">
                             <CardHeader>
@@ -116,10 +150,23 @@ export function ResearchPaperFinder() {
                                     {paper.authors.map(a => a.name).join(', ')} ({paper.year})
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="flex gap-2">
                                 <Button onClick={() => onPaperSelect(paper)} size="sm">
-                                    <FileText className="mr-2"/>
-                                    Generate Summary
+                                    <FileText className="mr-2 h-4 w-4"/>
+                                    Summary
+                                </Button>
+                                <Button 
+                                  onClick={() => handleBookmark(paper)} 
+                                  size="sm" 
+                                  variant="outline"
+                                  disabled={isBookmarking === paper.paperId}
+                                >
+                                    {isBookmarking === paper.paperId ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Bookmark className="h-4 w-4 mr-2" />
+                                    )}
+                                    Bookmark
                                 </Button>
                             </CardContent>
                         </Card>
@@ -131,16 +178,30 @@ export function ResearchPaperFinder() {
             if (!selectedPaper) return null;
             return (
                 <div className="rounded-md border p-6 bg-muted/50 h-full max-h-[70vh] overflow-y-auto">
-                    <h3 className="font-bold text-lg mb-4 font-headline">Executive Summary</h3>
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="font-bold text-lg font-headline">Executive Summary</h3>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleBookmark(selectedPaper)}
+                        disabled={isBookmarking === selectedPaper.paperId}
+                      >
+                         {isBookmarking === selectedPaper.paperId ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Bookmark className="h-4 w-4 mr-2" />
+                          )}
+                        Bookmark
+                      </Button>
+                    </div>
                     <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-headline prose-headings:font-bold mb-6">
                       <ReactMarkdown>{summary}</ReactMarkdown>
                     </div>
                     <Separator className="my-6" />
-                    <h4 className="font-semibold mb-2">Evidence</h4>
+                    <h4 className="font-semibold mb-2">Original Paper</h4>
                     <a href={selectedPaper.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline flex items-center">
-                        View Original Paper <ExternalLink className="h-4 w-4 ml-2"/>
+                        View on Semantic Scholar <ExternalLink className="h-4 w-4 ml-2"/>
                     </a>
-                    <p className="text-xs text-muted-foreground mt-1">{selectedPaper.title}</p>
                 </div>
             )
 
@@ -148,7 +209,7 @@ export function ResearchPaperFinder() {
         default:
             return (
                 <div className="flex items-center justify-center h-full border-2 border-dashed rounded-lg">
-                    <p className="text-muted-foreground text-center">Find a paper to get started.</p>
+                    <p className="text-muted-foreground text-center">Search for academic papers to begin analysis.</p>
                 </div>
             );
     }
@@ -159,9 +220,9 @@ export function ResearchPaperFinder() {
     <div className="grid lg:grid-cols-2 gap-6 items-start">
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline">Search for a Paper</CardTitle>
+          <CardTitle className="font-headline">Paper Search</CardTitle>
           <CardDescription>
-            Enter a research paper title or keyword to search Semantic Scholar.
+            Search millions of papers and bookmark the most relevant ones.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -172,9 +233,9 @@ export function ResearchPaperFinder() {
                 name="query"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Paper Title or Keywords</FormLabel>
+                    <FormLabel>Keywords or Title</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="e.g., 'Attention Is All You Need'" />
+                      <Input {...field} placeholder="e.g., 'Large Language Models'" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -182,7 +243,7 @@ export function ResearchPaperFinder() {
               />
               <Button type="submit" disabled={searchState === 'searching' || searchState === 'summarizing'} className="w-full">
                 {searchState === 'searching' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                Search Papers
+                Search
               </Button>
             </form>
           </Form>
@@ -191,13 +252,9 @@ export function ResearchPaperFinder() {
 
       <Card className="flex flex-col sticky top-20">
         <CardHeader>
-          <CardTitle className="font-headline">Analyzer</CardTitle>
+          <CardTitle className="font-headline">Analysis Result</CardTitle>
           <CardDescription>
-            {
-                searchState === 'results' ? 'Select a paper from the list.' 
-                : searchState === 'summary' ? 'Here is the AI-generated summary.'
-                : 'Search results and summaries will appear here.'
-            }
+            AI insights and bookmarking options.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex-grow min-h-[400px]">
