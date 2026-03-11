@@ -20,7 +20,6 @@ import { researchMentorChatAction } from '@/actions/research-mentor-chat';
 import { Loader2, Wand2, MessageSquare, Send } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from 'react-markdown';
-import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const formSchema = z.object({
@@ -132,7 +131,7 @@ export function ReportGeneratorForm() {
                 <FormField
                   control={form.control}
                   name="pdfFile"
-                  render={({ field }) => (
+                  render={() => (
                     <FormItem>
                       <FormLabel>Research Paper (PDF)</FormLabel>
                       <FormControl>
